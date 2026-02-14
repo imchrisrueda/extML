@@ -14,7 +14,7 @@ For more details about GPL-3.0: https://www.gnu.org/licenses/gpl-3.0.html
 
 import numpy as np
 
-from algorithms.algorithm import Algorithm
+from .algorithm import Algorithm
 
 class EpsilonGreedy(Algorithm):
 

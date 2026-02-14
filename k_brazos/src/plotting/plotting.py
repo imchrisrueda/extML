@@ -18,7 +18,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from algorithms import Algorithm, EpsilonGreedy
+from ..algorithms import Algorithm, EpsilonGreedy
 
 
 def get_algorithm_label(algo: Algorithm) -> str:
@@ -86,6 +86,29 @@ def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorith
     plt.tight_layout()
     plt.show()
 
+def plot_regret(steps: int, regret_accumulated: np.ndarray, algorithms: List[Algorithm], *args): 
+    """ Genera la gráfica de Regret Acumulado vs Pasos de Tiempo
+    
+    :param steps: Número de pasos de tiempo. 
+    :param regret_accumulated: Matriz de regret acumulado (algoritmos x pasos). 
+    :param algorithms: Lista de instancias de algoritmos comparados. 
+    :param args: Opcional. Parámetros que consideres. P.e. la cota teórica Cte * ln(T). 
+    """
+
+    sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
+
+    plt.figure(figsize=(14, 7))
+    for idx, algo in enumerate(algorithms):
+        label = get_algorithm_label(algo)
+        plt.plot(range(steps), regret_accumulated[idx], label=label, linewidth=2)
+
+    plt.xlabel('Pasos de Tiempo', fontsize=14)
+    plt.ylabel('Regret Acumulado ', fontsize=14)
+    plt.title('Regret Acumulado vs Pasos de Tiempo', fontsize=16)
+    plt.legend(title='Algoritmos')
+    plt.tight_layout()
+    plt.show()
+
 
 def plot_arm_statistics(arm_stats, algorithms: List[Algorithm], *args): 
     """ Genera gráficas separadas de Selección de Arms: Ganancias vs Pérdidas para cada algoritmo. 
@@ -98,16 +121,17 @@ def plot_arm_statistics(arm_stats, algorithms: List[Algorithm], *args):
     sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
 
     plt.figure(figsize=(14, 7))
-    for idx, algo in enumerate(algorithms):
+    for idx, algo in enumerate(algorithms): # Para cada algoritmo ejecutado
         label = get_algorithm_label(algo)
-        stats = arm_stats[idx] # Cojo las estadísticas de ese algoritmo 
+        stats = arm_stats[idx] # Cojo las estadísticas de ese algoritmo concreto
 
         arms = list(stats.keys())  # Las estadísticas van a ser una lista con la recompensa, los brazos seleccionados y si era óptimo o no
-        avg_rewards = [stats[a]["avg_reward"] for a in arms]
+        # Me quedo con cada elemento dentro de las estadísticas
+        avg_rewards = [stats[a]["avg_reward"] for a in arms] 
         selections = [stats[a]["selected"] for a in arms]
         is_optimal = [stats[a]["is_optimal"] for a in arms]
 
-        colors = ["tab:green" if opt else "tab:red" for opt in is_optimal]
+        colors = ["tab:green" if opt else "tab:red" for opt in is_optimal] # En verde el óptimo y si no en rojo
 
         plt.figure(figsize=(12, 6))
         bars = plt.bar(arms, avg_rewards, color=colors)
@@ -138,28 +162,3 @@ def plot_arm_statistics(arm_stats, algorithms: List[Algorithm], *args):
 
         plt.tight_layout()
         plt.show()
-
-
-
-def plot_regret(steps: int, regret_accumulated: np.ndarray, algorithms: List[Algorithm], *args): 
-    """ Genera la gráfica de Regret Acumulado vs Pasos de Tiempo
-    
-    :param steps: Número de pasos de tiempo. 
-    :param regret_accumulated: Matriz de regret acumulado (algoritmos x pasos). 
-    :param algorithms: Lista de instancias de algoritmos comparados. 
-    :param args: Opcional. Parámetros que consideres. P.e. la cota teórica Cte * ln(T). 
-    """
-
-    sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
-
-    plt.figure(figsize=(14, 7))
-    for idx, algo in enumerate(algorithms):
-        label = get_algorithm_label(algo)
-        plt.plot(range(steps), regret_accumulated[idx], label=label, linewidth=2)
-
-    plt.xlabel('Pasos de Tiempo', fontsize=14)
-    plt.ylabel('Regret Acumulado ', fontsize=14)
-    plt.title('Regret Acumulado vs Pasos de Tiempo', fontsize=16)
-    plt.legend(title='Algoritmos')
-    plt.tight_layout()
-    plt.show()

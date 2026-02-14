@@ -1,6 +1,6 @@
 # Título del Trabajo
 ## Información
-- **Alumnos:** García , Aida; Rueda Ayala, Christian Andrés; Cuña Cabrera, Pablo Daniel
+- **Alumnos:** García Echevarría, Aida; Rueda Ayala, Christian Andrés; Cuña Cabrera, Pablo Daniel
 - **Asignatura:** Aprendizaje por Refuerzo
 - **Curso:** 2025/2026
 - **Grupo:** NombreGrupo (p.e. ap1ap2ap3m, usando los apellidos)
