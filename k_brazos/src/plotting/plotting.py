@@ -2,7 +2,7 @@
 Module: plotting/plotting.py
 Description: Contiene funciones para generar gráficas de comparación de algoritmos.
 
-Author: Luis Daniel Hernández Molinero
+Author: Luis Daniel Hernández Molinero y modificado por los alumnos Aida García Echevarría; Christian Andrés Rueda Ayala; Pablo Daniel Cuña Cabrera
 Email: ldaniel@um.es
 Date: 2025/01/29
 
@@ -40,14 +40,15 @@ def get_algorithm_label(algo: Algorithm) -> str:
         raise ValueError("El algoritmo debe ser de la clase Algorithm o una subclase.")
     return label
 
-
-def plot_average_rewards(steps: int, rewards: np.ndarray, algorithms: List[Algorithm]):
+#se ha añadido el parámetro distribution_name para poder indicar en el título del gráfico a qué distribución pertenece
+def plot_average_rewards(steps: int, rewards: np.ndarray, algorithms: List[Algorithm], distribution_name: str = ""):
     """
     Genera la gráfica de Recompensa Promedio vs Pasos de Tiempo.
 
     :param steps: Número de pasos de tiempo.
     :param rewards: Matriz de recompensas promedio.
     :param algorithms: Lista de instancias de algoritmos comparados.
+    :param distribution_name: Tipo de distribución que se está ejecutando
     """
     sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
 
@@ -58,19 +59,24 @@ def plot_average_rewards(steps: int, rewards: np.ndarray, algorithms: List[Algor
 
     plt.xlabel('Pasos de Tiempo', fontsize=14)
     plt.ylabel('Recompensa Promedio', fontsize=14)
-    plt.title('Recompensa Promedio vs Pasos de Tiempo', fontsize=16)
+
+    title = "Recompensa Promedio vs Pasos de Tiempo"
+    if distribution_name:
+        title += f" ({distribution_name})"
+    plt.title(title, fontsize=16)
     plt.legend(title='Algoritmos')
     plt.tight_layout()
     plt.show()
 
 
-def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorithms: List[Algorithm]):
+def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorithms: List[Algorithm], distribution_name: str = ""):
     """
     Genera la gráfica de Porcentaje de Selección del Brazo Óptimo vs Pasos de Tiempo.
 
     :param steps: Número de pasos de tiempo.
     :param optimal_selections: Matriz de porcentaje de selecciones óptimas.
     :param algorithms: Lista de instancias de algoritmos comparados.
+    :param distribution_name: Tipo de distribución que se está ejecutando
     """
     sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
 
@@ -81,17 +87,24 @@ def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorith
 
     plt.xlabel('Pasos de Tiempo', fontsize=14)
     plt.ylabel('Selección del Brazo Óptimo', fontsize=14)
-    plt.title('Porcentaje de Selección del Brazo Óptimo vs Pasos de Tiempo', fontsize=16)
+    
+    title = "Porcentaje de Selección del Brazo Óptimo vs Pasos de Tiempo"
+    if distribution_name:
+        title += f" ({distribution_name})"
+
+    plt.title(title, fontsize=16)
+
     plt.legend(title='Algoritmos')
     plt.tight_layout()
     plt.show()
 
-def plot_regret(steps: int, regret_accumulated: np.ndarray, algorithms: List[Algorithm], *args): 
+def plot_regret(steps: int, regret_accumulated: np.ndarray, algorithms: List[Algorithm], distribution_name: str = "", *args): 
     """ Genera la gráfica de Regret Acumulado vs Pasos de Tiempo
     
     :param steps: Número de pasos de tiempo. 
     :param regret_accumulated: Matriz de regret acumulado (algoritmos x pasos). 
     :param algorithms: Lista de instancias de algoritmos comparados. 
+    :param distribution_name: Tipo de distribución que se está ejecutando
     :param args: Opcional. Parámetros que consideres. P.e. la cota teórica Cte * ln(T). 
     """
 
@@ -104,17 +117,24 @@ def plot_regret(steps: int, regret_accumulated: np.ndarray, algorithms: List[Alg
 
     plt.xlabel('Pasos de Tiempo', fontsize=14)
     plt.ylabel('Regret Acumulado ', fontsize=14)
-    plt.title('Regret Acumulado vs Pasos de Tiempo', fontsize=16)
+   
+    title = "Regret Acumulado vs Pasos de Tiempo"
+    if distribution_name:
+        title += f" ({distribution_name})"
+
+    plt.title(title, fontsize=16)
+
     plt.legend(title='Algoritmos')
     plt.tight_layout()
     plt.show()
 
 
-def plot_arm_statistics(arm_stats, algorithms: List[Algorithm], *args): 
+def plot_arm_statistics(arm_stats, algorithms: List[Algorithm], distribution_name: str = "",*args): 
     """ Genera gráficas separadas de Selección de Arms: Ganancias vs Pérdidas para cada algoritmo. 
     
     :param arm_stats: Lista (de diccionarios) con estadísticas de cada brazo por algoritmo. 
     :param algorithms: Lista de instancias de algoritmos comparados. 
+    :param distribution_name: Tipo de distribución que se está ejecutando
     :param args: Opcional. Parámetros que consideres 
     """
 
@@ -150,7 +170,12 @@ def plot_arm_statistics(arm_stats, algorithms: List[Algorithm], *args):
 
         plt.xlabel("Brazo", fontsize=14)
         plt.ylabel("Recompensa promedio estimada", fontsize=14)
-        plt.title(f"Estadísticas por brazo – {label}", fontsize=16)
+
+        title = f"Estadísticas por brazo – {label}"
+        if distribution_name:
+            title += f" ({distribution_name})"
+
+        plt.title(title, fontsize=16)
 
         # Leyenda para óptimo/no óptimo
         from matplotlib.patches import Patch
