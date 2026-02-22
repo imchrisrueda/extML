@@ -30,7 +30,7 @@ class AgentMC:
         self.gamma = gamma
         self.decay = decay
 
-        # Q(s,a)
+        # Q(s,a) - valor esperado 
         self.Q = np.zeros((self.nS, self.nA)) 
 
         # Contador de visitas
@@ -50,10 +50,10 @@ class AgentMC:
         Responde a la política del agente --> política epsilon-greedy basada en Q
         """
         probs = np.ones(self.nA) * self.epsilon / self.nA # Al principio todas las acciones tienen la misma probabilidad
-        best_action = np.argmax(self.Q[state])
-        probs[best_action] += (1.0 - self.epsilon)
+        best_action = np.argmax(self.Q[state])  # La mejor acción es la de más Q
+        probs[best_action] += (1.0 - self.epsilon) # Ahora la mayor prob va a tener la de mayor Q
 
-        return np.random.choice(np.arange(self.nA), p=probs)
+        return np.random.choice(np.arange(self.nA), p=probs) # En base a las probabilidades elegir una acción
 
 
     def update(self, obs, action, next_obs, reward, terminated, truncated, info):
@@ -62,24 +62,24 @@ class AgentMC:
         Implementación Monte Carlo all-sisit
         """
 
-        # Guardamos transición (solo s,a,r)
+        # Guardar combinación - s,a,r
         self.episode.append((obs, action, reward))
 
-        self.episode_return += reward
-        self.episode_length += 1
+        self.episode_return += reward # cuánto retorno ha tenido ese episodio
+        self.episode_length += 1 # cuánto dura el episodio
 
         done = terminated or truncated
 
+        # Si el episodio ha terminado se actualiza MC
         if done:
             G = 0
 
-            # Recorremos el episodio hacia atrás
-            for t in reversed(range(len(self.episode))):
-                s, a, r = self.episode[t]
-                G = self.gamma * G + r
+            for t in reversed(range(len(self.episode))): # reversed porque es hacia atrás
+                s, a, r = self.episode[t] # Sacar valores del episodio
+                G = self.gamma * G + r # Retorno
 
-                self.returns_count[s, a] += 1
-                alpha = 1.0 / self.returns_count[s, a]
+                self.returns_count[s, a] += 1 
+                alpha = 1.0 / self.returns_count[s, a] # promedio 
 
                 self.Q[s, a] += alpha * (G - self.Q[s, a])
 
@@ -88,8 +88,9 @@ class AgentMC:
             self.episode_return = 0.0
             self.episode_length = 0
 
-
-        def decay_epsilon(self, episode_number):
-            if self.decay:
-                self.epsilon = min(1.0, 1000.0 / (episode_number + 1))
+    # disminuir epsilon para que al final vaya explorando menos y explotando más
+    # porque ahí ya sabemos cuál es la mejor opción
+    def decay_epsilon(self, episode_number):
+        if self.decay:
+            self.epsilon = min(1.0, 1000.0 / (episode_number + 1))
 
