@@ -16,5 +16,4 @@ For more details about GPL-3.0: https://www.gnu.org/licenses/gpl-3.0.html
 from .plotting import plot_average_rewards, plot_optimal_selections, plot_arm_statistics, plot_regret
 
 # Lista de módulos o clases públicas
-__all__ = ['plot_average_rewards', 'plot_optimal_selections']
-
+__all__ = ['plot_average_rewards', 'plot_optimal_selections', 'plot_arm_statistics', 'plot_regret']
