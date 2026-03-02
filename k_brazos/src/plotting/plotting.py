@@ -83,7 +83,7 @@ def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorith
         plt.plot(range(steps), optimal_selections[idx] * 100, label=label, linewidth=2) #x100 para obtener el porcentaje
 
     plt.xlabel('Pasos de Tiempo', fontsize=14)
-    plt.ylabel('Selección del Brazo Óptimo', fontsize=14)
+    plt.ylabel('% Selección del Brazo Óptimo', fontsize=14)
     
     title = "Porcentaje de Selección del Brazo Óptimo vs Pasos de Tiempo"
     if distribution_name:
