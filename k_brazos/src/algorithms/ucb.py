@@ -12,34 +12,40 @@ from .algorithm import Algorithm
 
 
 class UCB1(Algorithm):
-    def __init__(self, k: int):
+    def __init__(self, k: int, c: float = np.sqrt(2.0)):
         """
-        Inicializa el algoritmo UCB1 (Auer et al., 2002) para un bandido de k brazos..
+        Inicializa el algoritmo UCB (Auer et al., 2002) para un bandido de k brazos.
+
+        En la forma general:
+            UCB(a) = Q(a) + c * sqrt( ln(t) / N(a) )
+
+        Nota: c = sqrt(2) equivale a la forma clásica:
+            Q(a) + sqrt( (2 ln t) / N(a) )
 
         :param k: Número de brazos del bandido.
-        
+        :param c: Constante de exploración (c > 0).
         """
-        
+        assert c > 0, "El parámetro c debe ser mayor que 0."
         super().__init__(k)
+        self.c = float(c)
 
     def _get_ucb1_scores(self) -> np.ndarray:
         """
-        Calcula UCB1(a) = Q(a) + sqrt( (2 ln t) / N(a) ) para cada brazo.
+        Calcula UCB(a) = Q(a) + c * sqrt( ln(t) / N(a) ) para cada brazo.
 
         Importante: self.counts[i] > 0 para todo i para evitar divisiones entre 0.
 
-        :return: Vector de scores UCB1 de tamaño k.
+        :return: Vector de scores UCB de tamaño k.
         """
         t = np.sum(self.counts)
-        ucb1_scores = self.values + np.sqrt((2.0 * np.log(t)) / self.counts)
-        return ucb1_scores        
-
+        ucb_scores = self.values + self.c * np.sqrt(np.log(t) / self.counts)
+        return ucb_scores
 
     def select_arm(self) -> int:
         """
-        Selecciona un brazo según UCB1:
+        Selecciona un brazo según UCB:
         - Primero verifica que cada brazo haya sido seleccionado al menos una vez.
-        - Luego elige el brazo que maximiza UCB1(a) de Auer et al sobre Q(a)..
+        - Luego elige el brazo que maximiza UCB(a) (Auer et al., 2002) sobre Q(a).
         """
         chosen_arm = None
 
@@ -49,7 +55,7 @@ class UCB1(Algorithm):
                 chosen_arm = i
                 break
 
-        # Si todos fueron probados, aplicamos UCB1
+        # Si todos fueron probados, aplicamos UCB
         if chosen_arm is None:
             scores = self._get_ucb1_scores()
             chosen_arm = int(np.argmax(scores))
@@ -63,81 +69,96 @@ class UCB2(Algorithm):
         """
         Inicializa el algoritmo UCB2 (Auer et al., 2002) para un bandido de k brazos.
 
-        UCB2 divide el proceso en épocas. En cada nueva época:
-        1) Selecciona el brazo j que maximiza: x̄_j + a_{n, r_j}
-        2) Juega el brazo j exactamente: τ(r_j+1) - τ(r_j) veces
-        3) Incrementa r_j
+        UCB2 organiza la exploración en épocas. En cada nueva época:
+        1) Selecciona el brazo j que maximiza: Q(j) + a(n, r_j)
+        2) Acciona el brazo j una cantidad fija de veces asociada a esa época.
+        3) Incrementa el contador de épocas r_j del brazo seleccionado.
 
         :param k: Número de brazos del bandido.
-        :param alpha: Parámetro de UCB2 (0 < alpha < 1) que controla el crecimiento de τ(r).
+        :param alpha: Parámetro de UCB2 (0 < alpha < 1) que controla el crecimiento de la función tau(r).
         """
         assert 0.0 < alpha < 1.0, "El parámetro alpha debe estar en (0, 1)."
         super().__init__(k)
+
         self.alpha = float(alpha)
 
         # r_i: número de épocas completadas por cada brazo i (inicialmente 0)
-        self.epochs = np.zeros(self.k, dtype=int)
+        self.epocas = np.zeros(self.k, dtype=int)
 
-        # Estado de la época actual
-        self._current_arm = None
-        self._plays_left_in_epoch = 0
+        # Estado interno para mantener el brazo durante una época
+        self._brazo_actual = None
+        self._restantes_en_epoca = 0
 
     def _tau(self, r: int) -> int:
         """
-        τ(r) = ceil((1 + alpha)^r)   (ver Auer et al., 2002).
+        Función tau(r) que define el tamaño de las épocas:
+        tau(r) = ceil((1 + alpha)^r)
+
+        :param r: Índice de época (entero no negativo).
+        :return: Valor entero de tau(r).
         """
         return int(np.ceil((1.0 + self.alpha) ** r))
 
     def _a(self, n: int, r: int) -> float:
         """
-        a_{n,r} = sqrt( ((1 + alpha) * ln(e*n / τ(r))) / (2 * τ(r)) )
+        Término de confianza a(n, r) utilizado por UCB2:
+        a(n, r) = sqrt( ((1 + alpha) * ln(e*n / tau(r))) / (2 * tau(r)) )
+
+        :param n: Número total de acciones realizadas hasta el momento.
+        :param r: Número de épocas completadas por el brazo.
+        :return: Valor del término de confianza.
         """
         tau_r = self._tau(r)
-        # n >= 1 en el momento de uso (tras el warm-up). Aun así protegemos log.
-        inside_log = (np.e * n) / tau_r
-        return float(np.sqrt(((1.0 + self.alpha) * np.log(inside_log)) / (2.0 * tau_r)))
+        return float(np.sqrt(((1.0 + self.alpha) * np.log((np.e * n) / tau_r)) / (2.0 * tau_r)))
 
     def _get_ucb2_scores(self, n: int) -> np.ndarray:
         """
-        Devuelve x̄_i + a_{n, r_i} para cada brazo i (asumiendo counts>0).
+        Calcula el índice de UCB2 para cada brazo:
+        UCB2(i) = Q(i) + a(n, r_i)
+
+        Importante: self.counts[i] > 0 para todo i para evitar divisiones entre 0
+        (esto se garantiza con la verificación inicial en select_arm).
+
+        :param n: Número total de acciones realizadas hasta el momento.
+        :return: Vector de índices UCB2 de tamaño k.
         """
-        scores = np.empty(self.k, dtype=float)
+        ucb2_scores = np.empty(self.k, dtype=float)
         for i in range(self.k):
-            scores[i] = self.values[i] + self._a(n, int(self.epochs[i]))
-        return scores
+            ucb2_scores[i] = self.values[i] + self._a(n, int(self.epocas[i]))
+        return ucb2_scores
 
     def select_arm(self) -> int:
         """
         Selecciona un brazo según UCB2:
-        - Warm-up: cada brazo se selecciona al menos una vez.
-        - Si estamos dentro de una época, repite el mismo brazo hasta completarla.
-        - Si inicia una nueva época, elige el brazo con mayor índice UCB2 y fija su longitud.
+        - Primero verifica que cada brazo haya sido seleccionado al menos una vez.
+        - Si estamos dentro de una época, mantiene el mismo brazo hasta completarla.
+        - Si se inicia una nueva época, elige el brazo que maximiza UCB2(i) y fija su duración.
         """
-        # 1) Warm-up: probar cada brazo una vez (como en la inicialización del paper)
+        # Verificación inicial: probar cada brazo al menos una vez
         for i in range(self.k):
             if self.counts[i] == 0:
                 return int(i)
 
-        # 2) Si aún quedan jugadas de la época actual, mantener el mismo brazo
-        if self._plays_left_in_epoch > 0 and self._current_arm is not None:
-            self._plays_left_in_epoch -= 1
-            return int(self._current_arm)
+        # Si aún quedan acciones dentro de la época actual, repetir el mismo brazo
+        if self._restantes_en_epoca > 0 and self._brazo_actual is not None:
+            self._restantes_en_epoca -= 1
+            return int(self._brazo_actual)
 
-        # 3) Empezar nueva época
-        n = int(np.sum(self.counts))  # número total de jugadas realizadas hasta ahora (n >= k >= 1)
+        # Iniciar una nueva época
+        n = int(np.sum(self.counts))  # total de acciones realizadas hasta ahora (n >= 1)
 
         scores = self._get_ucb2_scores(n)
-        j = int(np.argmax(scores))
+        brazo_elegido = int(np.argmax(scores))
 
-        # Longitud de la época del brazo j: τ(r_j+1) - τ(r_j)
-        rj = int(self.epochs[j])
-        epoch_len = self._tau(rj + 1) - self._tau(rj)
+        # Duración de la época para el brazo elegido: tau(r+1) - tau(r)
+        r_brazo = int(self.epocas[brazo_elegido])
+        duracion_epoca = self._tau(r_brazo + 1) - self._tau(r_brazo)
 
-        # Fijar estado de época: vamos a jugar j 'epoch_len' veces (esta llamada cuenta como 1)
-        self._current_arm = j
-        self._plays_left_in_epoch = max(epoch_len - 1, 0)
+        # Configurar el estado de época (esta llamada cuenta como la primera acción)
+        self._brazo_actual = brazo_elegido
+        self._restantes_en_epoca = max(duracion_epoca - 1, 0)
 
-        # Incrementar contador de épocas del brazo elegido
-        self.epochs[j] += 1
+        # Incrementar el contador de épocas del brazo elegido
+        self.epocas[brazo_elegido] += 1
 
-        return int(j)
+        return int(brazo_elegido)
