@@ -22,44 +22,40 @@ class AgentMC:
         """
 
         self.env = env
-        self.nA = env.action_space.n # Número de acciones
-        self.nS = env.observation_space.n # Número de estados
+        self.nA = env.action_space.n # num de acciones
+        self.nS = env.observation_space.n # num de estados
 
-        # Inicializar todo
         self.epsilon = epsilon
         self.gamma = gamma
         self.decay = decay
 
         # Q(s,a) - valor esperado 
         self.Q = np.zeros((self.nS, self.nA)) 
+        self.returns_count = np.zeros((self.nS, self.nA)) # contador de visitas
+        self.C = np.zeros((self.nS, self.nA)) # suma de pesos     
 
-        # Contador de visitas
-        self.returns_count = np.zeros((self.nS, self.nA)) 
-
-        # Memoria del episodio
         self.episode = []
-
-        # Estadísticas
         self.episode_return = 0.0
         self.episode_length = 0
 
 
     def get_action(self, state) -> Any:
         """
-        Indicará qué acción realizar de acuerdo al estado.
+        Qué acción realizar según el estado.
         Responde a la política del agente --> política epsilon-greedy basada en Q
         """
-        probs = np.ones(self.nA) * self.epsilon / self.nA # Al principio todas las acciones tienen la misma probabilidad
-        best_action = np.argmax(self.Q[state])  # La mejor acción es la de más Q
-        probs[best_action] += (1.0 - self.epsilon) # Ahora la mayor prob va a tener la de mayor Q
+        probs = np.ones(self.nA) * self.epsilon / self.nA # al principio todas las acciones tienen la misma probabilidad
+        best_action = np.argmax(self.Q[state])  # la mejor acción es la de más Q
+        probs[best_action] += (1.0 - self.epsilon) # ahora lay mayor prob va a tener la de maor Q
 
-        return np.random.choice(np.arange(self.nA), p=probs) # En base a las probabilidades elegir una acción
+        return np.random.choice(np.arange(self.nA), p=probs) # en base a las probabilidades elegir una acción
 
 
-    def update(self, obs, action, next_obs, reward, terminated, truncated, info):
+    # update de forma on-policy Q[s,a] += (1/N) * (G - Q[s,a])
+    def update_on(self, obs, action, next_obs, reward, terminated, truncated, info):
         """
-        Con la muestra (s, a, s', r) e información complementaria aplicamos el algoritmo.
-        Implementación Monte Carlo all-sisit
+        Con (s, a, s', r) aplicar MC all-visit
+        estado, accion, siguiente estado, recompensa
         """
 
         # Guardar combinación - s,a,r
@@ -70,27 +66,64 @@ class AgentMC:
 
         done = terminated or truncated
 
-        # Si el episodio ha terminado se actualiza MC
+        # si el episodio ha terminado se actualiza MC
         if done:
             G = 0
 
             for t in reversed(range(len(self.episode))): # reversed porque es hacia atrás
-                s, a, r = self.episode[t] # Sacar valores del episodio
-                G = self.gamma * G + r # Retorno
+                s, a, r = self.episode[t] # sacar valores del episodio
+                G = r + self.gamma * G # retorno
 
                 self.returns_count[s, a] += 1 
                 alpha = 1.0 / self.returns_count[s, a] # promedio 
 
                 self.Q[s, a] += alpha * (G - self.Q[s, a])
 
-            # Reset episodio
+            # reset episodio
+            self.episode = []
+            self.episode_return = 0.0
+            self.episode_length = 0
+
+    # este caso de off policy 
+    def update_off(self, obs, action, next_obs, reward, terminated, truncated, info):
+        self.episode.append((obs, action, reward))
+        self.episode_return += reward
+        self.episode_length += 1
+
+        done = terminated or truncated
+
+        if done:
+            G = 0.0 # retorno acumulado 
+            W = 1.0  # ratio de importancia acumulado
+
+            for t in reversed(range(len(self.episode))): # recorrer hacia atrás
+                s, a, r = self.episode[t] # del paso t
+                G = r + self.gamma * G # retorno de ese paso
+
+                # Actualización Weighted IS
+                self.C[s, a] += W # la suma de todos los pesos
+                self.Q[s, a] += (W / self.C[s, a]) * (G - self.Q[s, a])
+
+                # Calcular el ratio para el paso anterior
+                greedy_action = np.argmax(self.Q[s])
+
+                if a != greedy_action:
+                    # la política objetivo es greedy pura
+                    # si la acción que tomamos no es la greedy, entonces π(a|s) = 0
+                    # el ratio es 0, y todo lo que quede del episodio hacia atrás no aporta nada
+                    break
+
+                # Si la acción fue greedy: π(a|s)=1, b(a|s)=(1-ε)+ε/|A|
+                prob_b = (1.0 - self.epsilon) + (self.epsilon / self.nA)
+                W = W * (1.0 / prob_b)
+
             self.episode = []
             self.episode_return = 0.0
             self.episode_length = 0
 
     # disminuir epsilon para que al final vaya explorando menos y explotando más
-    # porque ahí ya sabemos cuál es la mejor opción
+    # porque ahí ya sabemos cuál es la mejor opción, ha ido aprendiendo
     def decay_epsilon(self, episode_number):
         if self.decay:
-            self.epsilon = min(1.0, 1000.0 / (episode_number + 1))
+            self.epsilon = max(0.05, self.epsilon * 0.999)
 
