@@ -58,10 +58,11 @@ class AgentMC:
         Política de comportamiento b(a|s)
         Totalmente aleatoria 
         """
-        return self.get_action(state)
+        return self.env.action_space.sample()
+    
 
-    # update de forma on-policy Q[s,a] += (1/N) * (G - Q[s,a])
-    def update_on(self, obs, action, next_obs, reward, terminated, truncated, info):
+    # este es el update all visits del apartado A
+    def update(self, obs, action, next_obs, reward, terminated, truncated, info):
         """
         Con (s, a, s', r) aplicar MC all-visit
         estado, accion, siguiente estado, recompensa
@@ -89,6 +90,38 @@ class AgentMC:
                 self.Q[s, a] += alpha * (G - self.Q[s, a])
 
             # reset episodio
+            self.episode = []
+            self.episode_return = 0.0
+            self.episode_length = 0
+
+
+    # update de forma on-policy Q[s,a] += (1/N) * (G - Q[s,a])
+    # first visit!!
+    def update_on(self, obs, action, next_obs, reward, terminated, truncated, info):
+        """
+        Con (s, a, s', r) aplicar MC all-visit
+        estado, accion, siguiente estado, recompensa
+        """
+        self.episode.append((obs, action, reward))
+        self.episode_return += reward
+        self.episode_length += 1
+
+        done = terminated or truncated
+
+        if done:
+            G = 0
+            visited = set()  
+
+            for t in reversed(range(len(self.episode))):
+                s, a, r = self.episode[t]
+                G = r + self.gamma * G
+
+                if (s, a) not in visited:
+                    visited.add((s, a))
+                    self.returns_count[s, a] += 1
+                    alpha = 1.0 / self.returns_count[s, a]
+                    self.Q[s, a] += alpha * (G - self.Q[s, a])
+
             self.episode = []
             self.episode_return = 0.0
             self.episode_length = 0
@@ -141,5 +174,4 @@ class AgentMC:
     # porque ahí ya sabemos cuál es la mejor opción, ha ido aprendiendo
     def decay_epsilon(self, episode_number):
         if self.decay:
-            self.epsilon = max(0.05, self.epsilon * 0.999)
-
+            self.epsilon = max(0.01, 1.0 - episode_number * (0.99 / 8000))
