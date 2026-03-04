@@ -64,6 +64,8 @@ class UCB1(Algorithm):
 
 
 
+import numpy as np
+
 class UCB2(Algorithm):
     def __init__(self, k: int, alpha: float = 0.1):
         """
@@ -91,7 +93,7 @@ class UCB2(Algorithm):
 
     def _tau(self, r: int) -> int:
         """
-        Función tau(r) que define el tamaño de las épocas:
+        Función tau(r) que define el tamaño acumulado hasta la época r:
         tau(r) = ceil((1 + alpha)^r)
 
         :param r: Índice de época (entero no negativo).
@@ -101,23 +103,30 @@ class UCB2(Algorithm):
 
     def _a(self, n: int, r: int) -> float:
         """
-        Término de confianza a(n, r) utilizado por UCB2:
-        a(n, r) = sqrt( ((1 + alpha) * ln(e*n / tau(r))) / (2 * tau(r)) )
+        Término de confianza a(n, r) utilizado por UCB2 (Auer et al., 2002):
+
+        a(n, r) = sqrt( ((1 + alpha) * ln(e*n / tau(r))) / (2 * tau(r+1)) )
+
+        Nota: en el denominador aparece tau(r+1), no tau(r).
 
         :param n: Número total de acciones realizadas hasta el momento.
         :param r: Número de épocas completadas por el brazo.
         :return: Valor del término de confianza.
         """
         tau_r = self._tau(r)
-        return float(np.sqrt(((1.0 + self.alpha) * np.log((np.e * n) / tau_r)) / (2.0 * tau_r)))
+        tau_r1 = self._tau(r + 1)
+
+        # En la práctica, tau_r <= n siempre debería cumplirse si el algoritmo está funcionando bien,
+        # pero por robustez evitamos log() de valores <= 0.
+        ratio = (np.e * n) / tau_r
+        ratio = max(ratio, 1.0 + 1e-12)
+
+        return float(np.sqrt(((1.0 + self.alpha) * np.log(ratio)) / (2.0 * tau_r1)))
 
     def _get_ucb2_scores(self, n: int) -> np.ndarray:
         """
         Calcula el índice de UCB2 para cada brazo:
         UCB2(i) = Q(i) + a(n, r_i)
-
-        Importante: self.counts[i] > 0 para todo i para evitar divisiones entre 0
-        (esto se garantiza con la verificación inicial en select_arm).
 
         :param n: Número total de acciones realizadas hasta el momento.
         :return: Vector de índices UCB2 de tamaño k.
@@ -145,7 +154,7 @@ class UCB2(Algorithm):
             return int(self._brazo_actual)
 
         # Iniciar una nueva época
-        n = int(np.sum(self.counts))  # total de acciones realizadas hasta ahora (n >= 1)
+        n = int(np.sum(self.counts))  # total de acciones realizadas hasta ahora (n >= k)
 
         scores = self._get_ucb2_scores(n)
         brazo_elegido = int(np.argmax(scores))
