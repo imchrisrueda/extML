@@ -51,6 +51,15 @@ class AgentMC:
         return np.random.choice(np.arange(self.nA), p=probs) # en base a las probabilidades elegir una acción
 
 
+
+    # para off policy
+    def behavior_action(self, state):
+        """
+        Política de comportamiento b(a|s)
+        Totalmente aleatoria 
+        """
+        return self.get_action(state)
+
     # update de forma on-policy Q[s,a] += (1/N) * (G - Q[s,a])
     def update_on(self, obs, action, next_obs, reward, terminated, truncated, info):
         """
@@ -84,6 +93,7 @@ class AgentMC:
             self.episode_return = 0.0
             self.episode_length = 0
 
+
     # este caso de off policy 
     def update_off(self, obs, action, next_obs, reward, terminated, truncated, info):
         self.episode.append((obs, action, reward))
@@ -97,25 +107,31 @@ class AgentMC:
             W = 1.0  # ratio de importancia acumulado
 
             for t in reversed(range(len(self.episode))): # recorrer hacia atrás
-                s, a, r = self.episode[t] # del paso t
-                G = r + self.gamma * G # retorno de ese paso
+                s, a, r = self.episode[t]
+                G = r + self.gamma * G
 
-                # Actualización Weighted IS
-                self.C[s, a] += W # la suma de todos los pesos
+                # Actualización con Weighted Importance Sampling
+                self.C[s, a] += W
+                self.returns_count[s, a] += 1
                 self.Q[s, a] += (W / self.C[s, a]) * (G - self.Q[s, a])
 
-                # Calcular el ratio para el paso anterior
+                # Calcular ratio de importancia para el paso anterior
+                # Política objetivo π: greedy respecto a Q
                 greedy_action = np.argmax(self.Q[s])
-
+                
+                # π(a|s) = 1 si a es la acción greedy, 0 si no
                 if a != greedy_action:
-                    # la política objetivo es greedy pura
-                    # si la acción que tomamos no es la greedy, entonces π(a|s) = 0
-                    # el ratio es 0, y todo lo que quede del episodio hacia atrás no aporta nada
+                    break  # si π(a|s) = 0, terminamos
+                
+                # Política de comportamiento b: aleatoria uniforme
+                prob_b = 1.0 / self.nA
+                
+                # Actualizar peso de importancia
+                W *= 1.0 / prob_b  # π(a|s) = 1, así que solo dividimos por prob_b
+
+                if W > 1e6:  # límite de estabilidad
                     break
 
-                # Si la acción fue greedy: π(a|s)=1, b(a|s)=(1-ε)+ε/|A|
-                prob_b = (1.0 - self.epsilon) + (self.epsilon / self.nA)
-                W = W * (1.0 / prob_b)
 
             self.episode = []
             self.episode_return = 0.0
