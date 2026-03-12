@@ -198,17 +198,17 @@ config_obj
 def method_summary_df(method_results, method):
     metrics = method_results["summary"][method]
     row = {
-        "Metodo": METHOD_LABELS[method],
-        "Train reward ultimos 1000": metrics["train_reward_last_window_mean"],
+        "Método": METHOD_LABELS[method],
+        "Train reward últimos 1000": metrics["train_reward_last_window_mean"],
         "Train reward std semillas": metrics["train_reward_last_window_std"],
-        "Train longitud ultimos 1000": metrics["train_length_last_window_mean"],
-        "Train exito real ultimos 1000": metrics["train_success_last_window_mean"],
+        "Train longitud últimos 1000": metrics["train_length_last_window_mean"],
+        "Train éxito real últimos 1000": metrics["train_success_last_window_mean"],
         "Eval greedy final": metrics["final_eval_reward_mean"],
         "Eval greedy std semillas": metrics["final_eval_reward_std_across_seeds"],
         "Eval greedy longitud": metrics["final_eval_length_mean"],
-        "Eval greedy exito real": metrics["final_eval_success_rate_mean"],
+        "Eval greedy éxito real": metrics["final_eval_success_rate_mean"],
     }
-    return pd.DataFrame([row]).set_index("Metodo").round(3)
+    return pd.DataFrame([row]).set_index("Método").round(3)
 
 
 def plot_single_method(method_results, method):
@@ -218,7 +218,7 @@ def plot_single_method(method_results, method):
     curve = method_results["curves"][method]
 
     fig = plt.figure(figsize=(14, 10))
-    fig.suptitle(f"{label} - Evolucion del entrenamiento y de la politica greedy", fontsize=13, fontweight="bold")
+    fig.suptitle(f"{label} - Evolución del entrenamiento y de la política greedy", fontsize=13, fontweight="bold")
     gs = gridspec.GridSpec(2, 2, figure=fig, hspace=0.35, wspace=0.3)
 
     ax1 = fig.add_subplot(gs[0, 0])
@@ -230,7 +230,7 @@ def plot_single_method(method_results, method):
     x = np.arange(config_obj.rolling_window // 2, config_obj.rolling_window // 2 + min_len)
     ax1.plot(x, mean_curve, color=color, lw=2)
     ax1.fill_between(x, mean_curve - std_curve, mean_curve + std_curve, color=color, alpha=0.15)
-    ax1.set_title("Reward de entrenamiento (media movil)")
+    ax1.set_title("Reward de entrenamiento (media móvil)")
     ax1.set_xlabel("Episodio")
     ax1.set_ylabel("Reward")
     ax1.grid(alpha=0.25)
@@ -244,7 +244,7 @@ def plot_single_method(method_results, method):
     x = np.arange(config_obj.rolling_window // 2, config_obj.rolling_window // 2 + min_len)
     ax2.plot(x, mean_curve, color=color, lw=2)
     ax2.fill_between(x, mean_curve - std_curve, mean_curve + std_curve, color=color, alpha=0.15)
-    ax2.set_title("Longitud de episodio (media movil)")
+    ax2.set_title("Longitud de episodio (media móvil)")
     ax2.set_xlabel("Episodio")
     ax2.set_ylabel("Pasos")
     ax2.grid(alpha=0.25)
@@ -255,7 +255,7 @@ def plot_single_method(method_results, method):
     eval_std = np.array(curve["eval_reward_std_across_seeds"])
     ax3.plot(eval_x, eval_mean, color=color, lw=2, marker="o", ms=3)
     ax3.fill_between(eval_x, eval_mean - eval_std, eval_mean + eval_std, color=color, alpha=0.15)
-    ax3.set_title("Reward en evaluacion greedy")
+    ax3.set_title("Reward en evaluación greedy")
     ax3.set_xlabel("Episodio")
     ax3.set_ylabel("Reward medio")
     ax3.grid(alpha=0.25)
@@ -271,9 +271,9 @@ def plot_single_method(method_results, method):
         color=color,
         alpha=0.15,
     )
-    ax4.set_title("Exito real en evaluacion greedy")
+    ax4.set_title("Éxito real en evaluación greedy")
     ax4.set_xlabel("Episodio")
-    ax4.set_ylabel("Tasa de exito")
+    ax4.set_ylabel("Tasa de éxito")
     ax4.set_ylim(0, 1)
     ax4.grid(alpha=0.25)
 
@@ -286,22 +286,22 @@ def comparative_summary_df(results):
         metrics = results["summary"][method]
         rows.append(
             {
-                "Metodo": METHOD_LABELS[method],
-                "Train reward ultimos 1000": metrics["train_reward_last_window_mean"],
-                "Train longitud ultimos 1000": metrics["train_length_last_window_mean"],
-                "Train exito real ultimos 1000": metrics["train_success_last_window_mean"],
+                "Método": METHOD_LABELS[method],
+                "Train reward últimos 1000": metrics["train_reward_last_window_mean"],
+                "Train longitud últimos 1000": metrics["train_length_last_window_mean"],
+                "Train éxito real últimos 1000": metrics["train_success_last_window_mean"],
                 "Eval greedy final": metrics["final_eval_reward_mean"],
                 "Eval greedy std semillas": metrics["final_eval_reward_std_across_seeds"],
                 "Eval greedy longitud": metrics["final_eval_length_mean"],
-                "Eval greedy exito real": metrics["final_eval_success_rate_mean"],
+                "Eval greedy éxito real": metrics["final_eval_success_rate_mean"],
             }
         )
-    return pd.DataFrame(rows).set_index("Metodo").round(3)
+    return pd.DataFrame(rows).set_index("Método").round(3)
 
 
 def plot_comparative_results(results):
     fig = plt.figure(figsize=(15, 11))
-    fig.suptitle("Taxi-v3: comparacion global de metodos tabulares", fontsize=13, fontweight="bold")
+    fig.suptitle("Taxi-v3: comparación global de métodos tabulares", fontsize=13, fontweight="bold")
     gs = gridspec.GridSpec(2, 2, figure=fig, hspace=0.35, wspace=0.3)
 
     ax1 = fig.add_subplot(gs[0, 0])
@@ -315,7 +315,7 @@ def plot_comparative_results(results):
         x = np.arange(config_obj.rolling_window // 2, config_obj.rolling_window // 2 + min_len)
         ax1.plot(x, mean_curve, lw=2, color=color, label=METHOD_LABELS[method])
         ax1.fill_between(x, mean_curve - std_curve, mean_curve + std_curve, color=color, alpha=0.12)
-    ax1.set_title("Reward de entrenamiento (media movil)")
+    ax1.set_title("Reward de entrenamiento (media móvil)")
     ax1.set_xlabel("Episodio")
     ax1.set_ylabel("Reward")
     ax1.grid(alpha=0.25)
@@ -332,7 +332,7 @@ def plot_comparative_results(results):
         x = np.arange(config_obj.rolling_window // 2, config_obj.rolling_window // 2 + min_len)
         ax2.plot(x, mean_curve, lw=2, color=color, label=METHOD_LABELS[method])
         ax2.fill_between(x, mean_curve - std_curve, mean_curve + std_curve, color=color, alpha=0.12)
-    ax2.set_title("Longitud de episodio (media movil)")
+    ax2.set_title("Longitud de episodio (media móvil)")
     ax2.set_xlabel("Episodio")
     ax2.set_ylabel("Pasos")
     ax2.grid(alpha=0.25)
@@ -347,7 +347,7 @@ def plot_comparative_results(results):
         std_curve = np.array(curve["eval_reward_std_across_seeds"])
         ax3.plot(x, mean_curve, lw=2, marker="o", ms=3, color=color, label=METHOD_LABELS[method])
         ax3.fill_between(x, mean_curve - std_curve, mean_curve + std_curve, color=color, alpha=0.12)
-    ax3.set_title("Reward en evaluacion greedy")
+    ax3.set_title("Reward en evaluación greedy")
     ax3.set_xlabel("Episodio")
     ax3.set_ylabel("Reward medio")
     ax3.grid(alpha=0.25)
@@ -368,9 +368,9 @@ def plot_comparative_results(results):
             color=color,
             alpha=0.12,
         )
-    ax4.set_title("Exito real en evaluacion greedy")
+    ax4.set_title("Éxito real en evaluación greedy")
     ax4.set_xlabel("Episodio")
-    ax4.set_ylabel("Tasa de exito")
+    ax4.set_ylabel("Tasa de éxito")
     ax4.set_ylim(0, 1)
     ax4.grid(alpha=0.25)
     ax4.legend(fontsize=8)
@@ -436,7 +436,7 @@ Guardar explícitamente `b(a|s)` era una corrección importante frente a impleme
     mc_off_commentary = method_commentary(
         METHOD_LABELS["mc_off_policy_weighted"],
         mc_off,
-        "Este método es el mejor de los dos Monte Carlo, pero su caso es especialmente interesante: la tasa de éxito greedy es alta y aun así la recompensa sigue siendo negativa. Eso indica que muchas trayectorias llegan al objetivo, pero tardando demasiado o acumulando demasiado coste por el camino.",
+        "Este método es el mejor de los dos Monte Carlo, pero su caso es especialmente interesante: la tasa de éxito greedy es alta y aún así la recompensa sigue siendo negativa. Eso indica que muchas trayectorias llegan al objetivo, pero tardando demasiado o acumulando demasiado coste por el camino.",
     )
 
     sarsa_text = """## 3. SARSA tabular

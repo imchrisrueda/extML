@@ -577,7 +577,7 @@ def run_method_experiment(
     verbose: bool = False,
 ) -> dict:
     if method not in RUNNERS:
-        raise ValueError(f"Metodo desconocido: {method}")
+        raise ValueError(f"Método desconocido: {method}")
 
     results = create_results_skeleton(config)
     runner = RUNNERS[method]
